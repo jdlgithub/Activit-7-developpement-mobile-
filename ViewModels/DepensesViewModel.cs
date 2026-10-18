@@ -11,7 +11,8 @@ public class DepensesViewModel : BaseViewModel
     private readonly IApiService _api;
     private bool _isBusy;
     private string _totalConverti = "", _message = "";
-    private string _libelle = "", _montantTexte = "";
+    private string _libelle = "", _montantTexte = "", _recherche = "";
+    private List<Depense> _toutes = new();
 
     public ObservableCollection<Depense> Depenses { get; } = new();
     public decimal Total => Depenses.Sum(d => d.Montant);
@@ -25,6 +26,13 @@ public class DepensesViewModel : BaseViewModel
     {
         get => _montantTexte;
         set { if (SetField(ref _montantTexte, value)) AjouterCommand.Rafraichir(); }
+    }
+
+    // Filtre la liste affichee a chaque frappe (insensible a la casse).
+    public string Recherche
+    {
+        get => _recherche;
+        set { if (SetField(ref _recherche, value)) AppliquerFiltre(); }
     }
 
     public RelayCommand AjouterCommand { get; }
@@ -62,12 +70,22 @@ public class DepensesViewModel : BaseViewModel
             async () => await ConvertirAsync(), () => !IsBusy);
     }
 
-    // Relit le stockage et remplit la liste affichee.
+    // Relit le stockage puis applique le filtre courant.
     public async Task ChargerAsync()
     {
+        _toutes = await _repo.ListerAsync();
+        AppliquerFiltre();
+    }
+
+    // Reconstruit la liste affichee depuis _toutes selon la recherche.
+    private void AppliquerFiltre()
+    {
+        string q = (_recherche ?? "").Trim();
         Depenses.Clear();
-        foreach (var d in await _repo.ListerAsync())
-            Depenses.Add(d);
+        foreach (var d in _toutes)
+            if (q.Length == 0 ||
+                d.Libelle.Contains(q, StringComparison.OrdinalIgnoreCase))
+                Depenses.Add(d);
         OnPropertyChanged(nameof(Total));
     }
 
@@ -77,16 +95,16 @@ public class DepensesViewModel : BaseViewModel
             return;
         var d = new Depense { Libelle = Libelle, Montant = m };
         await _repo.AjouterAsync(d);     // 1. on sauvegarde
-        Depenses.Add(d);                 // 2. on affiche
-        OnPropertyChanged(nameof(Total));
+        _toutes.Add(d);                  // 2. on memorise
+        AppliquerFiltre();                // 3. on affiche (filtre compris)
         Libelle = ""; MontantTexte = "";
     }
 
     private async Task SupprimerAsync(Depense d)
     {
         await _repo.SupprimerAsync(d);
-        Depenses.Remove(d);
-        OnPropertyChanged(nameof(Total));
+        _toutes.Remove(d);
+        AppliquerFiltre();
     }
 
     private async Task ConvertirAsync()

@@ -4,20 +4,23 @@
              xmlns:vm="clr-namespace:CarnetDepenses.ViewModels"
              x:Class="CarnetDepenses.MainPage"
              Title="Carnet de depenses">
-  <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto"
         Padding="16" RowSpacing="10">
 
-    <VerticalStackLayout Grid.Row="0">
+    <SearchBar Grid.Row="0" Placeholder="Rechercher une depense"
+               Text="{Binding Recherche}"/>
+
+    <VerticalStackLayout Grid.Row="1">
       <Entry Placeholder="Libelle" Text="{Binding Libelle}"/>
       <Entry Placeholder="Montant" Keyboard="Numeric"
              Text="{Binding MontantTexte}"/>
       <Button Text="Ajouter" Command="{Binding AjouterCommand}"/>
     </VerticalStackLayout>
 
-    <Label Grid.Row="1" FontSize="18" FontAttributes="Bold"
+    <Label Grid.Row="2" FontSize="18" FontAttributes="Bold"
            Text="{Binding Total, StringFormat='Total : {0:N0} FCFA'}"/>
 
-    <CollectionView Grid.Row="2" ItemsSource="{Binding Depenses}">
+    <CollectionView Grid.Row="3" ItemsSource="{Binding Depenses}">
       <CollectionView.ItemTemplate>
         <DataTemplate>
           <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
@@ -34,7 +37,7 @@
       </CollectionView.ItemTemplate>
     </CollectionView>
 
-    <VerticalStackLayout Grid.Row="3" Spacing="6">
+    <VerticalStackLayout Grid.Row="4" Spacing="6">
       <Button Text="Convertir le total en EUR"
               Command="{Binding ConvertirCommand}"/>
       <ActivityIndicator IsRunning="{Binding IsBusy}"
