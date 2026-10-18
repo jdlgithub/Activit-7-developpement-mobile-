@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
+using CarnetDepenses.ViewModels;
+using CarnetDepenses.Services;
 
 namespace CarnetDepenses;
 
@@ -18,6 +20,10 @@ public static class MauiProgram
 #if DEBUG
 		builder.Logging.AddDebug();
 #endif
+
+		builder.Services.AddSingleton<IDepenseRepository, JsonDepenseRepository>();
+		builder.Services.AddSingleton<DepensesViewModel>();
+		builder.Services.AddSingleton<MainPage>();
 
 		return builder.Build();
 	}
