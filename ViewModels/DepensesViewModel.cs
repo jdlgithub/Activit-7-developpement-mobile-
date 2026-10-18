@@ -13,6 +13,8 @@ public class DepensesViewModel : BaseViewModel
     private string _totalConverti = "", _message = "";
     private string _libelle = "", _montantTexte = "", _recherche = "";
     private List<Depense> _toutes = new();
+    private Depense _enEdition;
+    private DateTime _date = DateTime.Today;
 
     public ObservableCollection<Depense> Depenses { get; } = new();
     public decimal Total => Depenses.Sum(d => d.Montant);
@@ -20,13 +22,24 @@ public class DepensesViewModel : BaseViewModel
     public string Libelle
     {
         get => _libelle;
-        set { if (SetField(ref _libelle, value)) AjouterCommand.Rafraichir(); }
+        set { if (SetField(ref _libelle, value)) RafraichirFormulaires(); }
     }
     public string MontantTexte
     {
         get => _montantTexte;
-        set { if (SetField(ref _montantTexte, value)) AjouterCommand.Rafraichir(); }
+        set { if (SetField(ref _montantTexte, value)) RafraichirFormulaires(); }
     }
+
+    // Date selectionnee dans le formulaire (et pendant une edition).
+    public DateTime Date
+    {
+        get => _date;
+        set => SetField(ref _date, value);
+    }
+
+    // Vrai si une depense existante est en cours de modification.
+    public bool EnEdition => _enEdition != null;
+    public bool PasEnEdition => _enEdition == null;
 
     // Filtre la liste affichee a chaque frappe (insensible a la casse).
     public string Recherche
@@ -37,6 +50,9 @@ public class DepensesViewModel : BaseViewModel
 
     public RelayCommand AjouterCommand { get; }
     public RelayCommandP SupprimerCommand { get; }
+    public RelayCommandP ModifierCommand { get; }
+    public RelayCommand EnregistrerCommand { get; }
+    public RelayCommand AnnulerCommand { get; }
     public bool IsBusy
     {
         get => _isBusy;
@@ -62,17 +78,35 @@ public class DepensesViewModel : BaseViewModel
         _api = api;
         AjouterCommand = new RelayCommand(
             async () => await AjouterAsync(),
-            () => !string.IsNullOrWhiteSpace(Libelle)
+            () => !EnEdition
+               && !string.IsNullOrWhiteSpace(Libelle)
                && !string.IsNullOrWhiteSpace(MontantTexte));
         SupprimerCommand = new RelayCommandP(
             async p => await SupprimerAsync((Depense)p));
+        ModifierCommand = new RelayCommandP(p => ChargerEdition((Depense)p));
+        EnregistrerCommand = new RelayCommand(
+            async () => await EnregistrerAsync(),
+            () => EnEdition
+               && !string.IsNullOrWhiteSpace(Libelle)
+               && !string.IsNullOrWhiteSpace(MontantTexte));
+        AnnulerCommand = new RelayCommand(AnnulerEdition);
         ConvertirCommand = new RelayCommand(
             async () => await ConvertirAsync(), () => !IsBusy);
+    }
+
+    private void RafraichirFormulaires()
+    {
+        AjouterCommand?.Rafraichir();
+        EnregistrerCommand?.Rafraichir();
     }
 
     // Relit le stockage puis applique le filtre courant.
     public async Task ChargerAsync()
     {
+        _enEdition = null;
+        Libelle = ""; MontantTexte = ""; Date = DateTime.Today;
+        OnPropertyChanged(nameof(EnEdition));
+        OnPropertyChanged(nameof(PasEnEdition));
         _toutes = await _repo.ListerAsync();
         AppliquerFiltre();
     }
@@ -93,17 +127,52 @@ public class DepensesViewModel : BaseViewModel
     {
         if (!decimal.TryParse(MontantTexte, out decimal m))
             return;
-        var d = new Depense { Libelle = Libelle, Montant = m };
+        var d = new Depense { Libelle = Libelle, Montant = m, Date = Date };
         await _repo.AjouterAsync(d);     // 1. on sauvegarde
         _toutes.Add(d);                  // 2. on memorise
         AppliquerFiltre();                // 3. on affiche (filtre compris)
-        Libelle = ""; MontantTexte = "";
+        Libelle = ""; MontantTexte = ""; Date = DateTime.Today;
+    }
+
+    // Bascule le formulaire en mode edition et le pre-remplit.
+    private void ChargerEdition(Depense d)
+    {
+        _enEdition = d;
+        Libelle = d.Libelle;
+        MontantTexte = d.Montant.ToString();
+        Date = d.Date;
+        OnPropertyChanged(nameof(EnEdition));
+        OnPropertyChanged(nameof(PasEnEdition));
+        RafraichirFormulaires();
+    }
+
+    private async Task EnregistrerAsync()
+    {
+        if (_enEdition == null) return;
+        if (!decimal.TryParse(MontantTexte, out decimal m))
+            return;
+        _enEdition.Libelle = Libelle;
+        _enEdition.Montant = m;
+        _enEdition.Date = Date;
+        await _repo.MettreAJourAsync(_enEdition);
+        AnnulerEdition();
+        AppliquerFiltre();
+    }
+
+    private void AnnulerEdition()
+    {
+        _enEdition = null;
+        Libelle = ""; MontantTexte = ""; Date = DateTime.Today;
+        OnPropertyChanged(nameof(EnEdition));
+        OnPropertyChanged(nameof(PasEnEdition));
+        RafraichirFormulaires();
     }
 
     private async Task SupprimerAsync(Depense d)
     {
         await _repo.SupprimerAsync(d);
         _toutes.Remove(d);
+        if (_enEdition == d) AnnulerEdition();
         AppliquerFiltre();
     }
 

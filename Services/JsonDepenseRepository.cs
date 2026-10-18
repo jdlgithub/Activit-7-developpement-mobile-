@@ -36,4 +36,15 @@ public class JsonDepenseRepository : IDepenseRepository
         l.RemoveAll(x => x.Id == d.Id);
         await EcrireAsync(l);
     }
+
+    public async Task MettreAJourAsync(Depense d)
+    {
+        var l = await ListerAsync();
+        int i = l.FindIndex(x => x.Id == d.Id);
+        if (i >= 0)
+        {
+            l[i] = d;
+            await EcrireAsync(l);
+        }
+    }
 }

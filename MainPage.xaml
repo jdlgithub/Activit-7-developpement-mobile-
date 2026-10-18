@@ -14,7 +14,13 @@
       <Entry Placeholder="Libelle" Text="{Binding Libelle}"/>
       <Entry Placeholder="Montant" Keyboard="Numeric"
              Text="{Binding MontantTexte}"/>
-      <Button Text="Ajouter" Command="{Binding AjouterCommand}"/>
+      <DatePicker Date="{Binding Date}"/>
+      <Button Text="Ajouter" Command="{Binding AjouterCommand}"
+              IsVisible="{Binding PasEnEdition}"/>
+      <Button Text="Enregistrer" Command="{Binding EnregistrerCommand}"
+              IsVisible="{Binding EnEdition}"/>
+      <Button Text="Annuler" Command="{Binding AnnulerCommand}"
+              IsVisible="{Binding EnEdition}"/>
     </VerticalStackLayout>
 
     <Label Grid.Row="2" FontSize="18" FontAttributes="Bold"
@@ -23,11 +29,16 @@
     <CollectionView Grid.Row="3" ItemsSource="{Binding Depenses}">
       <CollectionView.ItemTemplate>
         <DataTemplate>
-          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
             <Label Text="{Binding Libelle}"/>
             <Label Grid.Column="1" Text="{Binding Montant}"
                    VerticalOptions="Center"/>
-            <Button Grid.Column="2" Text="X"
+            <Button Grid.Column="2" Text="Modifier"
+                    CommandParameter="{Binding .}"
+                    Command="{Binding Source={RelativeSource
+                        AncestorType={x:Type vm:DepensesViewModel}},
+                        Path=ModifierCommand}"/>
+            <Button Grid.Column="3" Text="X"
                     CommandParameter="{Binding .}"
                     Command="{Binding Source={RelativeSource
                         AncestorType={x:Type vm:DepensesViewModel}},

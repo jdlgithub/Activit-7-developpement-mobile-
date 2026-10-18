@@ -28,6 +28,12 @@ public class SqliteDepenseRepository : IDepenseRepository
         await _db.InsertAsync(d);
     }
 
+    public async Task MettreAJourAsync(Depense d)
+    {
+        await InitAsync();
+        await _db.UpdateAsync(d);
+    }
+
     public async Task SupprimerAsync(Depense d)
     {
         await InitAsync();

@@ -6,5 +6,6 @@ public interface IDepenseRepository
 {
     Task<List<Depense>> ListerAsync();
     Task AjouterAsync(Depense d);
+    Task MettreAJourAsync(Depense d);
     Task SupprimerAsync(Depense d);
 }
